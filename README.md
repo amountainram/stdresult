@@ -14,8 +14,6 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
 - [stdresult](#stdresult)
   - [Table of Contents](#table-of-contents)
   - [The Problem](#the-problem)
-  - [Table of Contents](#table-of-contents-1)
-  - [The Problem](#the-problem-1)
     - [The `unsafe` World](#the-unsafe-world)
     - [The `safe` World](#the-safe-world)
   - [Install](#install)
@@ -33,43 +31,9 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
 
 > Disclaimer: The terms `safe` and `unsafe` here refer to the ability (or not) to infer error types across functions and code blocks. In other words, whether or not using a TypeScript `as` cast is safe.
 
----
-
-## Table of Contents
-
-- [stdresult](#stdresult)
-  - [Table of Contents](#table-of-contents)
-  - [The Problem](#the-problem)
-  - [Table of Contents](#table-of-contents-1)
-  - [The Problem](#the-problem-1)
-    - [The `unsafe` World](#the-unsafe-world)
-    - [The `safe` World](#the-safe-world)
-  - [Install](#install)
-  - [Quick Start](#quick-start)
-  - [Usage](#usage)
-    - [Sync](#sync)
-    - [Async](#async)
-  - [API](#api)
-  - [Globals](#globals)
-  - [Comparison with Rust traits](#comparison-with-rust-traits)
-
----
-
-## The Problem
-
-> Disclaimer: the word `safe` and `unsafe` will be
-> used here to describe the capability (or not) to
-> infer error types across functions and code blocks.
->
-> In other words, whether or not use a TypeScript `as`
-> cast is safe.
-
-
 This library attempts to translate some type concepts into TypeScript, but due to the language itself, it is basically trying to solve an _unsolvable problem_ (and, of course, it fails 🤫).
 
-
 The long-standing issue of error handling in JavaScript can be summarized as:
-
 
 1. Function signatures **do not allow** error type inference.
 2. `try/catch` blocks and `Promise` rejections cannot be safely typed beyond `unknown` or `any`.
@@ -79,9 +43,7 @@ The long-standing issue of error handling in JavaScript can be summarized as:
 
 A partial solution may involve linting to enforce that the argument of a `Promise.reject` is an `Error`. This approach simplifies point (3) but ultimately cannot solve the problem.
 
-
 Because the problem cannot be solved within the language.
-
 
 ### The `unsafe` World
 
