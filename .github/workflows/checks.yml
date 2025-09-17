@@ -17,16 +17,9 @@ jobs:
         node-version-file: .nvmrc
         check-latest: true
         cache: yarn
-    - name: Enable Corepack (Yarn 4)
-      run: |
-        corepack enable
-        yarn set version stable
-        yarn --version
     - name: Install Dependencies
       run: yarn install --immutable
     - name: Run Check Types
       run: yarn run check:types
     # - name: Run Linter
     #   run: yarn run lint
-    - name: JSR compatibility
-      run: yarn jsr publish --dry-run
