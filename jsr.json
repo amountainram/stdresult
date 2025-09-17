@@ -1,0 +1,13 @@
+{
+  "name": "@amountainram/stdresult",
+  "version": "0.0.0",
+  "license": "SEE LICENSE IN LICENSE",
+  "exports": "./src/index.ts",
+  "publish": {
+    "include": [
+      "src/**/*.ts",
+      "LICENSE",
+      "README.md"
+    ]
+  }
+}
