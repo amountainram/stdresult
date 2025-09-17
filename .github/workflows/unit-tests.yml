@@ -17,8 +17,11 @@ jobs:
         node-version-file: .nvmrc
         check-latest: true
         cache: yarn
-    - name: Setup yarn
-      run: corepack enable
+    - name: Enable Corepack (Yarn 4)
+      run: |
+        corepack enable
+        yarn set version stable
+        yarn --version
     - name: Install Dependencies
       run: yarn install --immutable
     - name: Run Unit Tests
