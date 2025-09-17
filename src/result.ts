@@ -22,6 +22,13 @@ const implementExt = <T, E>(
   ctor: IResultCtor, result: ResultImpl<T, E> & (Ok<T> | Err<E>)
 ): IResult<T, E> => {
   const iface = {
+    and<T2, E2 = E>(res: IResult<T2, E2 | E>): IResult<T2, E2 | E> {
+      if (result.isOk()) {
+        return res
+      }
+
+      return ctor.Err(result.error)
+    },
     andThen<T2, E2 = E>(
       fn: (value: T) => IResult<T2, E2 | E>
     ): IResult<T2, E2 | E> {
@@ -40,29 +47,13 @@ const implementExt = <T, E>(
       Object.defineProperty(error, 'cause', { value: result.error })
       throw error
     },
-    mapErr<E2>(fn: (error: E) => E2): IResult<T, E2> {
-      if (result.isOk()) {
-        return ctor.Ok(result.value)
+    expectErr(msg: string) {
+      if (result.isErr()) {
+        return result.error
       }
 
-      return ctor.Err(fn(result.error))
-    },
-    mapOk<T2>(fn: (value: T) => T2): IResult<T2, E> {
-      if (result.isOk()) {
-        return ctor.Ok(fn(result.value))
-      }
-
-      return ctor.Err(result.error)
-    },
-    unwrap() {
-      if (result.isOk()) {
-        return result.value
-      }
-
-      const error = new TypeError(
-        'Result is error',
-      )
-      Object.defineProperty(error, 'cause', { value: result.error })
+      const error = new TypeError(msg)
+      Object.defineProperty(error, 'cause', { value: result.value })
       throw error
     },
     inspectOk(fn: (value: T) => void): IResult<T, E> {
@@ -81,6 +72,84 @@ const implementExt = <T, E>(
 
       return ctor.Ok(result.value)
     },
+    mapErr<E2>(fn: (error: E) => E2): IResult<T, E2> {
+      if (result.isOk()) {
+        return ctor.Ok(result.value)
+      }
+
+      return ctor.Err(fn(result.error))
+    },
+    mapOk<T2>(fn: (value: T) => T2): IResult<T2, E> {
+      if (result.isOk()) {
+        return ctor.Ok(fn(result.value))
+      }
+
+      return ctor.Err(result.error)
+    },
+    mapOr<T2>(or: T2, fn: (value: T) => T2): T2 {
+      if (result.isOk()) {
+        return fn(result.value)
+      }
+
+      return or
+    },
+    mapOrElse<T2>(orFn: (error: E) => T2, fn: (value: T) => T2): T2 {
+      if (result.isOk()) {
+        return fn(result.value)
+      }
+
+      return orFn(result.error)
+    },
+    or<E2 = E>(res: IResult<T, E2 | E>): IResult<T, E2 | E> {
+      if (result.isErr()) {
+        return res
+      }
+
+      return ctor.Ok(result.value)
+    },
+    orElse<E2 = E>(fn: (error: E) => IResult<T, E2 | E>): IResult<T, E2 | E> {
+      if (result.isErr()) {
+        return fn(result.error)
+      }
+
+      return ctor.Ok(result.value)
+    },
+    unwrap() {
+      if (result.isOk()) {
+        return result.value
+      }
+
+      const error = new TypeError(
+        'Result is error',
+      )
+      Object.defineProperty(error, 'cause', { value: result.error })
+      throw error
+    },
+    unwrapErr() {
+      if (result.isErr()) {
+        return result.error
+      }
+
+      const error = new TypeError(
+        'Result is ok',
+      )
+      Object.defineProperty(error, 'cause', { value: result.value })
+      throw error
+    },
+    unwrapOr(or: T): T {
+      if (result.isOk()) {
+        return result.value
+      }
+
+      return or
+    },
+    unwrapOrElse(fn: (error: E) => T): T {
+      if (result.isOk()) {
+        return result.value
+      }
+
+      return fn(result.error)
+    }
   }
 
   return Object.assign(result, iface)
@@ -94,47 +163,35 @@ const implementAsyncExt = <T, E>(
       fn: (value: T) => IResult<T2, E2 | E> | DeferResult<T2, E | E>
     ): IAsyncResult<T2, E2 | E> {
       return ctor.defer(
-        new Promise<IResult<T2, E2 | E>>((resolve) => {
-          result.then((result) => {
-            if (result.isOk()) {
-              return fn(result.value)
-            }
+        result.then((result) => {
+          if (result.isOk()) {
+            return fn(result.value)
+          }
 
-            return Promise.resolve(ctor.Err<T2, E>(result.error))
-          })
-            .then(resolve)
+          return ctor.Err(result.error)
         })
       )
+    },
+    inspectOk(fn: (value: T) => void): IAsyncResult<T, E> {
+      return ctor.defer(result.then((inner) => inner.inspectOk(fn)))
+    },
+    inspectErr(fn: (error: E) => void): IAsyncResult<T, E> {
+      return ctor.defer(result.then((inner) => inner.inspectErr(fn)))
     },
     mapErr<E2>(fn: (error: E) => E2): IAsyncResult<T, E2> {
-      return ctor.defer(
-        new Promise<IResult<T, E2>>((resolve) => {
-          result.then((result) => {
-            if (result.isOk()) {
-              return Promise.resolve(ctor.Ok<T, E2>(result.value))
-            }
-
-            return Promise.resolve(ctor.Err<T, E2>(fn(result.error)))
-          })
-            .then(resolve)
-        })
-      )
+      return ctor.defer(result.then((inner) => inner.mapErr(fn)))
     },
     mapOk<T2>(fn: (value: T) => T2): IAsyncResult<T2, E> {
-      return ctor.defer(
-        new Promise<IResult<T2, E>>((resolve) => {
-          result.then((result) => {
-            if (result.isOk()) {
-              return Promise.resolve(ctor.Ok<T2, E>(fn(result.value)))
-            }
-
-            return Promise.resolve(ctor.Err<T2, E>(result.error))
-          })
-            .then(resolve)
-        })
-      )
+      return ctor.defer(result.then((inner) => inner.mapOk(fn)))
     },
+    mapOrElse<T2>(orFn: (error: E) => T2, fn: (value: T) => T2): PromiseLike<T2> {
+      return result.then((inner) => inner.mapOrElse(orFn, fn))
+    },
+    unwrapOrElse(fn: (error: E) => T): PromiseLike<T> {
+      return result.then((inner) => inner.unwrapOrElse(fn))
+    }
   }
+
   return Object.assign(Promise.resolve(result), iface)
 }
 

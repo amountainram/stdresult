@@ -14,6 +14,7 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
 
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [Comparison with Rust traits](#comparison-with-rust-traits)
 <!-- - [Core Concepts](#core-concepts) -->
 <!-- - [API Reference](#api-reference) -->
 <!--   - [Type & Constructors](#type--constructors) -->
@@ -74,3 +75,17 @@ if (ok.isOk()) {
   expect(ok.value).toBe(42)
 }
 ```
+
+## Comparison with Rust traits
+
+`IResult<T, E>` is roughly the `impl Result<T, E>` in Rust provided
+by the standard library, wheres `IAsyncResult<T, E>` implements
+`futures::future::TryFuture<Ok = T, Error = E>`.
+
+Significant differences are:
+
+- `mapOk` follows the naming of the `futures` library (it is `map` in std::result::Result).
+- `andThen`, both on `IResult` and `IAsyncResult`, allows error mapping using the TS `or` operator (`|`): it is allows to return from closure any kind of error `E2` which will be mapped to `E | E2`.
+- `unwrap` and `unwrapErr` do not panic, but throw exceptions 🤐
+- `mapOrElse` on `IAsyncResult` is aligned with `std::result::Result` naming instead of `futures::future::TryFutureExt`.
+
