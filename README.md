@@ -1,10 +1,9 @@
+
 # stdresult
 
-> A tiny, zero-dependency port of Rust’s `Result<T, E>` to TypeScript/JavaScript
-> with ergonomic helpers, exhaustive checks, and great type inference.
+A tiny, zero-dependency port of Rust’s `Result<T, E>` to TypeScript/JavaScript, with ergonomic helpers, exhaustive checks, and strong type inference.
 
-`IResult<T, E>` models the outcome of an operation that can **succeed** (`Ok<T>`) or **fail** (`Err<E>`).
-Instead of throwing, you **return** errors as values, making control-flow explicit and type-safe.
+`IResult<T, E>` models the outcome of an operation that can **succeed** (`Ok<T, E>`) or **fail** (`Err<T, E>`). Instead of throwing, you **return** errors as values, making control flow explicit and type-safe.
 
 An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with `Promise`-based APIs.
 
@@ -15,6 +14,8 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
 - [stdresult](#stdresult)
   - [Table of Contents](#table-of-contents)
   - [The Problem](#the-problem)
+  - [Table of Contents](#table-of-contents-1)
+  - [The Problem](#the-problem-1)
     - [The `unsafe` World](#the-unsafe-world)
     - [The `safe` World](#the-safe-world)
   - [Install](#install)
@@ -25,28 +26,32 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
   - [API](#api)
   - [Globals](#globals)
   - [Comparison with Rust traits](#comparison-with-rust-traits)
-<!-- - [Core Concepts](#core-concepts) -->
-<!-- - [API Reference](#api-reference) -->
-<!--   - [Type & Constructors](#type--constructors) -->
-<!--   - [Type Guards](#type-guards) -->
-<!--   - [Inspectors & Unwrapping](#inspectors--unwrapping) -->
-<!--   - [Transformations](#transformations) -->
-<!--   - [Control-Flow](#control-flow) -->
-<!--   - [Combinators](#combinators) -->
-<!--   - [Async Helpers](#async-helpers) -->
-<!--   - [Interop](#interop) -->
-<!-- - [Examples](#examples) -->
-<!--   - [Validating input (Zod)](#validating-input-zod) -->
-<!--   - [Wrapping exceptions](#wrapping-exceptions) -->
-<!--   - [Fetching (node/web)](#fetching-nodeweb) -->
-<!--   - [Express handler](#express-handler) -->
-<!--   - [Parallel composition](#parallel-composition) -->
-<!-- - [Design Notes](#design-notes) -->
-<!-- - [FAQ](#faq) -->
-<!-- - [Performance](#performance) -->
-<!-- - [Comparison & Prior Art](#comparison--prior-art) -->
-<!-- - [Contributing](#contributing) -->
-<!-- - [License](#license) -->
+
+---
+
+## The Problem
+
+> Disclaimer: The terms `safe` and `unsafe` here refer to the ability (or not) to infer error types across functions and code blocks. In other words, whether or not using a TypeScript `as` cast is safe.
+
+---
+
+## Table of Contents
+
+- [stdresult](#stdresult)
+  - [Table of Contents](#table-of-contents)
+  - [The Problem](#the-problem)
+  - [Table of Contents](#table-of-contents-1)
+  - [The Problem](#the-problem-1)
+    - [The `unsafe` World](#the-unsafe-world)
+    - [The `safe` World](#the-safe-world)
+  - [Install](#install)
+  - [Quick Start](#quick-start)
+  - [Usage](#usage)
+    - [Sync](#sync)
+    - [Async](#async)
+  - [API](#api)
+  - [Globals](#globals)
+  - [Comparison with Rust traits](#comparison-with-rust-traits)
 
 ---
 
@@ -59,42 +64,38 @@ An asynchronous variant, `IAsyncResult<T, E>`, is also provided for working with
 > In other words, whether or not use a TypeScript `as`
 > cast is safe.
 
-This library attempts to translate some type concepts into TypeScript, but due to the language itself, it is
-basically trying to solve un _unsolvable problem_
-(and ofc it fails 🤫).
 
-The long overdue issue of error handling in JavaScript
-can be summarized as:
+This library attempts to translate some type concepts into TypeScript, but due to the language itself, it is basically trying to solve an _unsolvable problem_ (and, of course, it fails 🤫).
 
-1. Function signatures **do not allow** error type inference and thus:
-2. `try/catch` blocks and `Promise` rejects cannot be decorated with a safe error type beside `unknown` or `any`
-3. Which forces the safe-enthusiast developer to handle every catch block with a function that goes through all possible JavaScript types (let alone countless `instanceof`)
-4. Soon the developer stops to care: most of the time re-`throws` and will handle later (which means never).
 
-A partial solution may involve linting to enforce 
-that the argument of a `Promise.reject` is an `Error`.
-This approach simplifies point (3) but at the end
-cannot really solve the problem.
+The long-standing issue of error handling in JavaScript can be summarized as:
 
-Cuz the problem cannot be solved within the language.
+
+1. Function signatures **do not allow** error type inference.
+2. `try/catch` blocks and `Promise` rejections cannot be safely typed beyond `unknown` or `any`.
+3. This forces the safety-minded developer to handle every catch block with code that checks all possible JavaScript types (often with many `instanceof` checks).
+4. Eventually, most developers stop caring: they usually just re-`throw` and promise to handle it later (which means never).
+
+
+A partial solution may involve linting to enforce that the argument of a `Promise.reject` is an `Error`. This approach simplifies point (3) but ultimately cannot solve the problem.
+
+
+Because the problem cannot be solved within the language.
+
 
 ### The `unsafe` World
 
-The approach proposed by the tools of this library
-is inspired by the rationale of the `unsafe` Rust
-blocks:
+The approach proposed by this library is inspired by Rust’s `unsafe` blocks:
 
-> Some things cannot be safe:
-> 
-> let's make our code safe and keep dangerous parts contained in unsafe blocks
+> Some things cannot be made safe. Let’s make our code safe and keep dangerous parts contained in unsafe blocks.
 
-Here the unsafe world is:
+Here, the unsafe world includes:
 
-- The platform globals (`fetch`, `URL`, `JSON.parse`, ...)
+- Platform globals (`fetch`, `URL`, `JSON.parse`, ...)
 - Any third-party library not implementing safe errors
 - `async/await` blocks
 
-Last point requires a remark. Consider the following:
+The last point requires a remark. Consider the following:
 
 ```typescript
 const fn = async () => {
@@ -102,11 +103,11 @@ const fn = async () => {
 }
 ```
 
-Type inference here says that the return type is
-`Promise<number>`. But we know, by inspecting the
-code that this function will never throw.
 
-We may be tempted to go for a
+Type inference here says that the return type is `Promise<number>`. But we know, by inspecting the code, that this function will never throw.
+
+
+We may be tempted to try:
 
 ```typescript
 const almostFn = async (): PromiseLike<number> => {
@@ -114,8 +115,8 @@ const almostFn = async (): PromiseLike<number> => {
 }
 ```
 
-but here TypeScript complains about type mismatch.
-So there is no way to conciliate:
+
+But here TypeScript complains about a type mismatch. So there is no way to reconcile:
 
 - error type knowledge
 - `async/await` keywords
@@ -123,29 +124,21 @@ So there is no way to conciliate:
 
 ### The `safe` World
 
-The `unsafe` world is just **too big**. And **unavoidable**.
+The `unsafe` world is just **too big**—and **unavoidable**.
 
-The aim of this library cannot be to rewrite all
-code in a safe fashion.
-Though, small parts of your code
-may benefit by enforcing type safety.
-Using this approach, utils
-or small, contained business code parts may
-present a more ergonomic APIs to users.
+The aim of this library is not to rewrite all code in a safe fashion. However, small parts of your code may benefit from enforced type safety. Using this approach, utilities or small, contained business logic can present more ergonomic APIs to users.
 
-> An example of a library that spends some effort to
-> implement a safe return type path is
-> [zod](https://zod.dev/basics#parsing-data)
-> with the `safeParse` and `safeAsyncParse` methods.
+> An example of a library that implements a safe return type is [zod](https://zod.dev/basics#parsing-data) with its `safeParse` and `safeParseAsync` methods.
+
 
 ## Install
 
-The library is provided as ESM and CJS. TypeScript types are included.
-Can be fetched from npm or jsr.
+The library is provided as ESM and CJS. TypeScript types are included. You can install it from npm or jsr.
 
 ```bash
+
 # npm
-npm i stdresult
+npm install stdresult
 
 # pnpm
 pnpm add stdresult
@@ -157,7 +150,8 @@ yarn add stdresult
 deno add jsr:@amountainram/stdresult
 ```
 
-Browser bundle is located at `./dist/index.min.js`
+
+The browser bundle is located at `./dist/index.min.js`.
 
 ```html
 <script type="module">
@@ -184,8 +178,8 @@ if (ok.isOk()) {
 }
 ```
 
-Create a function that cannot throw by using results
-and consistently handling return types
+
+Create a function that cannot throw by using results and consistently handling return types:
 
 ```typescript
 import { Result, NativeSyntaxError } from 'stdresult'
@@ -197,8 +191,7 @@ const safeJsonParse = (input: string): IResult<unknown, >
 
 ### Sync
 
-It all starts with a primitive `Ok<T>` or `Err<E>`
-interfaces.
+It all starts with the primitive `Ok<T, E = never>` and `Err<T, E>` interfaces.
 
 ```typescript
 type Invalid = 'invalid'
@@ -207,7 +200,8 @@ const ok = Result.Ok<string, Invalid>('{}')
 const err = Result.Err<number, Invalid>('invalid')
 ```
 
-Which can be parsed
+
+Which can be used for parsing:
 
 ```typescript
 const jsonparse = (input: string): IResult<unknown, SyntaxError> => {
@@ -221,7 +215,8 @@ const jsonparse = (input: string): IResult<unknown, SyntaxError> => {
 }
 ```
 
-In general any function can be transformed in this way:
+
+In general, any function can be transformed in this way:
 
 ```typescript
 type JsonParse = (input: string) => IResult<unknown, unknown>
@@ -229,9 +224,8 @@ type JsonParse = (input: string) => IResult<unknown, unknown>
 const jsonparse: JsonParse = Result.fromFn(JSON.parse)
 ```
 
-but ofc the error is `unknown` and this library will
-incrementally provide more wrapped APIs. Right now,
-we could also do:
+
+But of course, the error is `unknown`, and this library will incrementally provide more wrapped APIs. Right now, you could also do:
 
 ```typescript
 import {Globals} from 'stdresult'
@@ -239,8 +233,8 @@ import {Globals} from 'stdresult'
 const jsonparse = Globals.JSON.parse
 ```
 
-These `Globals` always errors out with a guarded
-type that states the Error class name
+
+These `Globals` always error out with a guarded type that states the Error class name:
 
 ```typescript
 type NativeSyntaxError = {
@@ -261,13 +255,14 @@ if (val.isErr() && val.error.type === 'SyntaxError') {
 }
 ```
 
-and `type` field is a guard that does not require the error to enforce an `instanceof` check.
+
+The `type` field is a guard that does not require the error to enforce an `instanceof` check.
 
 > All errors verify `instanceof Error` and extra
 > care should be taken while verifying instances
 
-Given an `IResult` there are 2 guard functions
-with guarded fields:
+
+Given an `IResult`, there are two guard functions with guarded fields:
 
 - `.isOk()` --> `.value`
 - `.isErr()` --> `.error`
@@ -282,8 +277,8 @@ if (val.isOk()) { // or val.isErr()
 }
 ```
 
-The rest of the story are just helpers function to
-chain and manipulate errors
+
+The rest of the story is just helper functions to chain and manipulate errors:
 
 ```typescript
 import {Globals, Result, NativeSyntaxError} from 'stdresult'
@@ -306,9 +301,8 @@ const res = Globals.JSON.parse('{"key":"value"}')
   ) // res is IResult<Data, NativeSyntaxError | ParseError>
 ```
 
-The last snippet shows how third-party library
-are generally part of the `unsafe` world. In the
-case of `zod` a safe counterpart is available:
+
+The last snippet shows how third-party libraries are generally part of the `unsafe` world. In the case of `zod`, a safe counterpart is available:
 
 ```typescript
 import {Globals, Result, NativeSyntaxError} from 'stdresult'
@@ -336,9 +330,9 @@ const res = Globals.JSON.parse('{"key":"value"}')
   })
 ```
 
-In a way, the `safe` world extends from the
-bottom up. In the example, `zod` allows to start
-deeper in the dependency tree.
+
+In a way, the `safe` world extends from the bottom up. In the example, `zod` allows you to start deeper in the dependency tree.
+
 
 ### Async
 
@@ -351,7 +345,8 @@ Create from a `Promise` (pay the `unknown` price):
 const res = Result.fromPromise(Promise.resolve(42))
 ```
 
-or `defer` it as a `PromiseLike` interface:
+
+Or `defer` it as a `PromiseLike` interface:
 
 ```typescript
 // res is IAsyncResult<number, string>
@@ -365,18 +360,20 @@ const res = Result.defer(Result.Ok(42))
   })
 ```
 
-In the `safe` world `defer` replaces an `async` block.
+
+In the `safe` world, `defer` replaces an `async` block.
 
 ## API
 
-There are 3 main APIs/interfaces:
+
+There are three main APIs/interfaces:
 
 1. The `typeof Result` or `IResultCtor`
 2. The `ResultExt`
 3. The `AsyncResultExt`
 
-Results are built via the object of static
-functions `Result`:
+
+Results are built via the static `Result` object:
 
 ```typescript
 interface IResultCtor {
@@ -536,8 +533,8 @@ interface ResultExt<T, E> {
 }
 ```
 
-An async `IAsyncResult<T, E>` provides the following
-methods:
+
+An async `IAsyncResult<T, E>` provides the following methods:
 
 ```typescript
 interface AsyncResultExt<T, E> {
@@ -583,8 +580,8 @@ interface AsyncResultExt<T, E> {
 
 ## Globals
 
-To enrich platform methods and extend `safe` world
-coverage, this library provide alternative globals.
+
+To enrich platform methods and extend `safe` world coverage, this library provides alternative globals.
 
 Currently `safe` versions are provided for:
 
@@ -594,23 +591,23 @@ Currently `safe` versions are provided for:
 - [x] `JSON.stringify`
 - [ ] ...
 
-> ⛪ Safety is hereby granted by the undisputed correctness
-> of the MDN documentation
 
-Pattern to error type safety is inferred with
-unsafe casts using MDN documentation recommendations
-and may therefore break on some platforms.
+> ⛪ Safety is hereby granted by the undisputed correctness of the MDN documentation.
+
+
+Patterned error type safety is inferred with unsafe casts using MDN documentation recommendations and may therefore break on some platforms.
 
 ## Comparison with Rust traits
 
-`IResult<T, E>` is roughly the `impl Result<T, E>` in Rust provided
-by the standard library, wheres `IAsyncResult<T, E>` implements
-`futures::future::TryFuture<Ok = T, Error = E>`.
+
+`IResult<T, E>` is roughly equivalent to `impl Result<T, E>` in Rust’s standard library, whereas `IAsyncResult<T, E>` implements `futures::future::TryFuture<Ok = T, Error = E>`.
+
 
 Significant differences are:
 
-- `mapOk` follows the naming of the `futures` library (it is `map` in std::result::Result).
-- `andThen`, both on `IResult` and `IAsyncResult`, allows error mapping using the TS `or` operator (`|`): it is allows to return from closure any kind of error `E2` which will be mapped to `E | E2`.
+
+- `mapOk` follows the naming of the `futures` library (it is `map` in `std::result::Result`).
+- `andThen`, both on `IResult` and `IAsyncResult`, allows error mapping using the TS `or` operator (`|`): you can return from the closure any kind of error `E2`, which will be mapped to `E | E2`.
 - `unwrap` and `unwrapErr` do not panic, but throw exceptions 🤐
 - `mapOrElse` on `IAsyncResult` is aligned with `std::result::Result` naming instead of `futures::future::TryFutureExt`.
 
