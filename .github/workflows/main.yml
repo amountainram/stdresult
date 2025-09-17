@@ -1,0 +1,25 @@
+name: Main
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.nvmrc'
+      - '.yarnrc.yml'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'vitest.config.ts'
+      - 'yarn.lock'
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  unit-tests:
+    uses: ./.github/workflows/unit-tests.yml

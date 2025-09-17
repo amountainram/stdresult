@@ -1,0 +1,13 @@
+name: Pull on Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  unit-tests:
+    uses: ./.github/workflows/unit-tests.yml

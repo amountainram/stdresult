@@ -1,0 +1,302 @@
+import type {
+  Ok,
+  Err,
+  ResultImpl,
+  IResult,
+  IAsyncResult,
+  DeferResult
+} from './types.js'
+
+interface IResultCtor {
+  Err: <T, E>(error: E) => IResult<T, E>
+  Ok: <T, E>(value: T) => IResult<T, E>
+  defer: <T, E>(r: IResult<T, E> | DeferResult<T, E>) => IAsyncResult<T, E>
+  fromPromise: <T>(p: Promise<T>) => IAsyncResult<T, unknown>
+  fromFn: <T>(p: () => T) => () => IResult<T, unknown>
+  fromAsyncFn: <T>(p: () => Promise<T>) => () => IAsyncResult<T, unknown>
+  call: <T>(fn: () => T) => IResult<T, unknown>
+  callAsync: <T>(fn: () => Promise<T>) => IAsyncResult<T, unknown>
+}
+
+const implementExt = <T, E>(
+  ctor: IResultCtor, result: ResultImpl<T, E> & (Ok<T> | Err<E>)
+): IResult<T, E> => {
+  const iface = {
+    andThen<T2, E2 = E>(
+      fn: (value: T) => IResult<T2, E2 | E>
+    ): IResult<T2, E2 | E> {
+      if (result.isOk()) {
+        return fn(result.value)
+      }
+
+      return ctor.Err(result.error)
+    },
+    expect(msg: string) {
+      if (result.isOk()) {
+        return result.value
+      }
+
+      const error = new TypeError(msg)
+      Object.defineProperty(error, 'cause', { value: result.error })
+      throw error
+    },
+    mapErr<E2>(fn: (error: E) => E2): IResult<T, E2> {
+      if (result.isOk()) {
+        return ctor.Ok(result.value)
+      }
+
+      return ctor.Err(fn(result.error))
+    },
+    mapOk<T2>(fn: (value: T) => T2): IResult<T2, E> {
+      if (result.isOk()) {
+        return ctor.Ok(fn(result.value))
+      }
+
+      return ctor.Err(result.error)
+    },
+    unwrap() {
+      if (result.isOk()) {
+        return result.value
+      }
+
+      const error = new TypeError(
+        'Result is error',
+      )
+      Object.defineProperty(error, 'cause', { value: result.error })
+      throw error
+    },
+    inspectOk(fn: (value: T) => void): IResult<T, E> {
+      if (result.isOk()) {
+        fn(result.value)
+        return ctor.Ok(result.value)
+      }
+
+      return ctor.Err(result.error)
+    },
+    inspectErr(fn: (error: E) => void): IResult<T, E> {
+      if (result.isErr()) {
+        fn(result.error)
+        return ctor.Err(result.error)
+      }
+
+      return ctor.Ok(result.value)
+    },
+  }
+
+  return Object.assign(result, iface)
+}
+
+const implementAsyncExt = <T, E>(
+  ctor: IResultCtor, result: DeferResult<T, E>
+): IAsyncResult<T, E> => {
+  const iface = {
+    andThen<T2, E2 = E>(
+      fn: (value: T) => IResult<T2, E2 | E> | DeferResult<T2, E | E>
+    ): IAsyncResult<T2, E2 | E> {
+      return ctor.defer(
+        new Promise<IResult<T2, E2 | E>>((resolve) => {
+          result.then((result) => {
+            if (result.isOk()) {
+              return fn(result.value)
+            }
+
+            return Promise.resolve(ctor.Err<T2, E>(result.error))
+          })
+            .then(resolve)
+        })
+      )
+    },
+    mapErr<E2>(fn: (error: E) => E2): IAsyncResult<T, E2> {
+      return ctor.defer(
+        new Promise<IResult<T, E2>>((resolve) => {
+          result.then((result) => {
+            if (result.isOk()) {
+              return Promise.resolve(ctor.Ok<T, E2>(result.value))
+            }
+
+            return Promise.resolve(ctor.Err<T, E2>(fn(result.error)))
+          })
+            .then(resolve)
+        })
+      )
+    },
+    mapOk<T2>(fn: (value: T) => T2): IAsyncResult<T2, E> {
+      return ctor.defer(
+        new Promise<IResult<T2, E>>((resolve) => {
+          result.then((result) => {
+            if (result.isOk()) {
+              return Promise.resolve(ctor.Ok<T2, E>(fn(result.value)))
+            }
+
+            return Promise.resolve(ctor.Err<T2, E>(result.error))
+          })
+            .then(resolve)
+        })
+      )
+    },
+  }
+  return Object.assign(Promise.resolve(result), iface)
+}
+
+/**
+ * Constructs an error `IResult`.
+ * @param error The error value to wrap in the result.
+ * @returns A Result representing failure with the given error.
+ * @example
+ * const result = Result.Err("Something went wrong");
+ * if (result.isErr()) {
+ *   console.error(result.error);
+ * }
+ */
+const Err = <T, E>(error: E): IResult<T, E> => {
+  const result: ResultImpl<T, E> = {
+    isErr: (): this is Err<E> => true,
+    isOk: (): this is Ok<T> => false,
+  }
+  const rImpl = Object.defineProperty(
+    result, 'error', { get: () => error }
+  ) as ResultImpl<T, E> & Err<E>
+
+  return implementExt(Result, rImpl)
+}
+
+/**
+ * Constructs a successful `IResult`.
+ * @param value The value to wrap in the result.
+ * @returns A Result representing success with the given value.
+ * @example
+ * const result = Result.Ok(42);
+ * if (result.isOk()) {
+ *   console.log(result.value);
+ * }
+ */
+const Ok = <T, E>(value: T): IResult<T, E> => {
+  const result = {
+    isErr: (): this is Err<E> => false,
+    isOk: (): this is Ok<T> => true,
+  }
+  const rImpl = Object.defineProperty(
+    result, 'value', { get: () => value }
+  ) as ResultImpl<T, E> & Ok<T>
+
+  return implementExt(Result, rImpl)
+}
+
+/**
+ * Converts a regular `IResult` or a deferred result
+ * like `Promise<IResult>` into a promised `IAsyncResult`.
+ * @param r A Result or a DeferResult (Promise of Result).
+ * @returns An IAsyncResult that resolves to the given result.
+ * @example
+ * const asyncResult = Result.defer(Result.Ok(123));
+ * asyncResult.then(r => {
+ *   if (r.isOk()) console.log(r.error);
+ * });
+ */
+const defer = <T, E>(r: IResult<T, E> | DeferResult<T, E>): IAsyncResult<T, E> =>
+  implementAsyncExt(Result, 'then' in r ? r : Promise.resolve(r))
+
+/**
+ * Wraps a promise to return an `IAsyncResult`.
+ * Since promises reject an unknown error type,
+ * the error type in the resulting `IAsyncResult` is `unknown`.
+ * @param promise A promise to wrap.
+ * @returns An IAsyncResult that resolves to Ok(value) or Err(error).
+ * @example
+ * const asyncResult = Result.fromPromise(fetchData());
+ * asyncResult.then(r => {
+ *   if (r.isOk()) console.log(r.value);
+ *   else console.error(r.error);
+ * });
+ */
+const fromPromise = <T>(promise: Promise<T>) =>
+  Result.defer(new Promise<IResult<T, unknown>>((resolve) => {
+    promise
+      .then((value) => resolve(Result.Ok(value)))
+      .catch((error) => resolve(Result.Err(error as unknown)))
+  }))
+
+/**
+ * Wraps a potentially throwing function and returns `IResult`.
+ * the error type in the resulting `IResult` is `unknown`.
+ * @param fn A function that may throw.
+ * @returns A function that cannot throw and returns an IResult.
+ * @example
+ * const fn = Result.fromFn(() => JSON.parse('invalid JSON'));
+ * const r = fn();
+ *
+ * if (r.isOk()) console.log(r.value);
+ * else console.error(r.error);
+ */
+const fromFn = <T>(fn: () => T) => () => {
+  try {
+    return Result.Ok<T, unknown>(fn())
+  } catch (error) {
+    return Result.Err<T, unknown>(error)
+  }
+}
+
+/**
+ * Wraps a potentially throwing function and returns `IResult`.
+ * the error type in the resulting `IResult` is `unknown`.
+ * @param fn A function that may throw.
+ * @returns An IResult that resolves to Ok(value) or Err(error).
+ * @example
+ * const r = Result.fromFn(() => JSON.parse('invalid JSON'));
+ *
+ * if (r.isOk()) console.log(r.value);
+ * else console.error(r.error);
+ */
+const call = <T>(fn: () => T) => fromFn(fn)()
+
+/**
+ * Wraps a function returning a function that resolves to a
+ * promise, cannot throws, and returns `IAsyncResult`.
+ * @param fn An async function to wrap.
+ * @returns An IAsyncResult that resolves to Ok(value) or Err(error).
+ * @example
+ * const asyncResult = Result.fromAsyncFn(() => fetch('https://example.com'));
+ * asyncResult.then(r => {
+ *   if (r.isOk()) console.log(r.value);
+ *   else console.error(r.error);
+ * });
+ */
+const fromAsyncFn = <T>(fn: () => Promise<T>) => () => fromPromise(fn())
+
+/**
+ * Wraps a function returning an `IAsyncResult`.
+ * @param fn An async function to wrap.
+ * @returns An IAsyncResult that resolves to Ok(value) or Err(error).
+ * @example
+ * const asyncResult = Result.callAsync(() => fetch('https://example.com'));
+ * asyncResult.then(r => {
+ *   if (r.isOk()) console.log(r.value);
+ *   else console.error(r.error);
+ * });
+ */
+const callAsync = <T>(fn: () => Promise<T>) => fromAsyncFn(fn)()
+
+/**
+ * `Result` is a namespace that provides construction
+ * functions Ok/Err structures.
+ *
+ * Functions:
+ * - Ok: Constructs a successful result.
+ * - Err: Constructs an error result.
+ * - defer: Converts a regular `IResult` into a promised `IAsyncResult`.
+ * - fromPromise: Wraps a promise to return a `IAsyncResult`.
+ * - fromFn: Wraps a function that may throw and returns a `IResult`.
+ * - fromAsyncFn: Wraps an async function and returns a `IAsyncResult`.
+ */
+const Result: IResultCtor = {
+  Err,
+  Ok,
+  defer,
+  fromPromise,
+  fromFn,
+  fromAsyncFn,
+  call,
+  callAsync
+}
+
+export { Result }

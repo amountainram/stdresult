@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@utils": [
+        "./src/globals/utils.ts"
+      ],
+      "stdresult": [
+        "./src/index.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
