@@ -38,14 +38,16 @@ export interface IResultCtor {
    * @param p The wrapped function
    * @returns a function returning a result
    */
-  fromFn: <T>(p: () => T) => () => IResult<T, unknown>
+  fromFn: <A extends any[], T>(p: (...arg: A) => T) =>
+    (...args: A) => IResult<T, unknown>
   /**
    * Builds a function returing an async result from
    * a promise-valued function
    * @param p The wrapped function
    * @returns a function returning an async result
    */
-  fromAsyncFn: <T>(p: () => Promise<T>) => () => IAsyncResult<T, unknown>
+  fromAsyncFn: <A extends any[], T>(p: (...args: A) => Promise<T>) =>
+    (...args: A) => IAsyncResult<T, unknown>
   /**
    * Builds a result from a function
    * @param p The function
@@ -328,13 +330,14 @@ const fromPromise = <T>(promise: Promise<T>) =>
  * if (r.isOk()) console.log(r.value);
  * else console.error(r.error);
  */
-const fromFn = <T>(fn: () => T) => () => {
-  try {
-    return Result.Ok<T, unknown>(fn())
-  } catch (error) {
-    return Result.Err<T, unknown>(error)
+const fromFn = <A extends any[], T>(fn: (...args: A) => T) =>
+  (...args: A) => {
+    try {
+      return Result.Ok<T, unknown>(fn(...args))
+    } catch (error) {
+      return Result.Err<T, unknown>(error)
+    }
   }
-}
 
 /**
  * Wraps a potentially throwing function and returns `IResult`.
@@ -361,7 +364,8 @@ const call = <T>(fn: () => T) => fromFn(fn)()
  *   else console.error(r.error);
  * });
  */
-const fromAsyncFn = <T>(fn: () => Promise<T>) => () => fromPromise(fn())
+const fromAsyncFn = <A extends any[], T>(fn: (...args: A) => Promise<T>) =>
+  (...args: A) => fromPromise(fn(...args))
 
 /**
  * Wraps a function returning an `IAsyncResult`.

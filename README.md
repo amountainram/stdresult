@@ -410,14 +410,16 @@ interface IResultCtor {
    * @param p The wrapped function
    * @returns a function returning a result
    */
-  fromFn: <T>(p: () => T) => () => IResult<T, unknown>
+  fromFn: <A extends any[], T>(p: (...arg: A) => T) =>
+    (...args: A) => IResult<T, unknown>
   /**
    * Builds a function returing an async result from
    * a promise-valued function
    * @param p The wrapped function
    * @returns a function returning an async result
    */
-  fromAsyncFn: <T>(p: () => Promise<T>) => () => IAsyncResult<T, unknown>
+  fromAsyncFn: <A extends any[], T>(p: (...args: A) => Promise<T>) =>
+    (...args: A) => IAsyncResult<T, unknown>
   /**
    * Builds a result from a function
    * @param p The function
