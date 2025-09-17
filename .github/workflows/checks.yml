@@ -23,3 +23,5 @@ jobs:
       run: yarn run check:types
     # - name: Run Linter
     #   run: yarn run lint
+    - name: JSR compatibility
+      run: yarn jsr publish --dry-run

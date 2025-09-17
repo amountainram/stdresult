@@ -1960,6 +1960,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsr@npm:^0.13.5":
+  version: 0.13.5
+  resolution: "jsr@npm:0.13.5"
+  dependencies:
+    node-stream-zip: "npm:^1.15.0"
+    semiver: "npm:^1.1.0"
+  bin:
+    jsr: dist/bin.js
+  checksum: 10c0/1be5adf5d98940091ec5ff89cdc3effeaf91ae0bd12d41ee49db8767b2221043ad2022d5f9a3acdd1dedb381ef3e31cb95f8fe874129cc91ec22df63b88ae373
+  languageName: node
+  linkType: hard
+
 "load-json-file@npm:^4.0.0":
   version: 4.0.0
   resolution: "load-json-file@npm:4.0.0"
@@ -2205,6 +2217,13 @@ __metadata:
   bin:
     node-gyp: bin/node-gyp.js
   checksum: 10c0/0bfd3e96770ed70f07798d881dd37b4267708966d868a0e585986baac487d9cf5831285579fd629a83dc4e434f53e6416ce301097f2ee464cb74d377e4d8bdbe
+  languageName: node
+  linkType: hard
+
+"node-stream-zip@npm:^1.15.0":
+  version: 1.15.0
+  resolution: "node-stream-zip@npm:1.15.0"
+  checksum: 10c0/429fce95d7e90e846adbe096c61d2ea8d18defc155c0345d25d0f98dd6fc72aeb95039318484a4e0a01dc3814b6d0d1ae0fe91847a29669dff8676ec064078c9
   languageName: node
   linkType: hard
 
@@ -2634,6 +2653,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semiver@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "semiver@npm:1.1.0"
+  checksum: 10c0/f208555fcdf8726d25a5d5acd5079b1f6a274a9be291da6981c70867cca9abd43721648b338bac914fbc7874e2594217a5943a2e91410ce24b5a80a641d4468b
+  languageName: node
+  linkType: hard
+
 "semver@npm:2 || 3 || 4 || 5, semver@npm:^5.5.0":
   version: 5.7.2
   resolution: "semver@npm:5.7.2"
@@ -2901,6 +2927,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.2.4"
     "@vitest/ui": "npm:^3.2.4"
     esbuild: "npm:^0.25.9"
+    jsr: "npm:^0.13.5"
     npm-run-all: "npm:^4.1.5"
     tsx: "npm:^4.20.5"
     typescript: "npm:^5.9.2"
