@@ -311,7 +311,7 @@ const defer = <T, E>(r: IResult<T, E>): IAsyncResult<T, E> =>
  *   else console.error(r.error);
  * });
  */
-const fromPromise = <T>(promise: Promise<T>) =>
+const fromPromise = <T>(promise: Promise<T>): IAsyncResult<T, unknown> =>
   implementAsyncExt(Result, new Promise<IResult<T, unknown>>((resolve) => {
     promise
       .then((value) => resolve(Result.Ok(value)))
@@ -331,7 +331,7 @@ const fromPromise = <T>(promise: Promise<T>) =>
  * else console.error(r.error);
  */
 const fromFn = <A extends any[], T>(fn: (...args: A) => T) =>
-  (...args: A) => {
+  (...args: A): IResult<T, unknown> => {
     try {
       return Result.Ok<T, unknown>(fn(...args))
     } catch (error) {
@@ -350,7 +350,7 @@ const fromFn = <A extends any[], T>(fn: (...args: A) => T) =>
  * if (r.isOk()) console.log(r.value);
  * else console.error(r.error);
  */
-const call = <T>(fn: () => T) => fromFn(fn)()
+const call = <T>(fn: () => T): IResult<T, unknown> => fromFn(fn)()
 
 /**
  * Wraps a function returning a function that resolves to a
@@ -364,7 +364,9 @@ const call = <T>(fn: () => T) => fromFn(fn)()
  *   else console.error(r.error);
  * });
  */
-const fromAsyncFn = <A extends any[], T>(fn: (...args: A) => Promise<T>) =>
+const fromAsyncFn = <A extends any[], T>(
+  fn: (...args: A) => Promise<T>
+): (...args: A) => IAsyncResult<T, unknown> =>
   (...args: A) => fromPromise(fn(...args))
 
 /**
@@ -378,7 +380,8 @@ const fromAsyncFn = <A extends any[], T>(fn: (...args: A) => Promise<T>) =>
  *   else console.error(r.error);
  * });
  */
-const callAsync = <T>(fn: () => Promise<T>) => fromAsyncFn(fn)()
+const callAsync = <T>(fn: () => Promise<T>): IAsyncResult<T, unknown> =>
+  fromAsyncFn(fn)()
 
 /**
  * `Result` is a namespace that provides construction
