@@ -2,6 +2,12 @@
   "name": "stdresult",
   "version": "0.0.0",
   "type": "module",
+  "author": "Umberto Toniolo <amountainram@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amountainram/stdresult"
+  },
   "description": "Rust-inspired, type-safe Result and async error handling utilities for TypeScript, with ergonomic wrappers for native JS APIs.",
   "files": [
     "dist",
