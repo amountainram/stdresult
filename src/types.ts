@@ -11,7 +11,7 @@ export interface ResultImpl<T, E> {
   isOk(): this is Ok<T>
 }
 
-interface ResultExt<T, E> {
+export interface ResultExt<T, E> {
   /**
    * Returns `res` if the result is `Ok`, otherwise returns the `Err` value of `this`.
    */
@@ -107,7 +107,7 @@ interface ResultExt<T, E> {
   unwrapOrElse(fn: (error: E) => T): T
 }
 
-interface AsyncResultExt<T, E> {
+export interface AsyncResultExt<T, E> {
   /**
    * Executes another future after this one resolves successfully.
    * The success value is passed to a closure to create this subsequent future.

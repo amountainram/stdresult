@@ -4,17 +4,59 @@ import type {
   ResultImpl,
   IResult,
   IAsyncResult,
-  DeferResult
+  DeferResult,
 } from './types.js'
 
-interface IResultCtor {
+export interface IResultCtor {
+  /**
+   * Builds a result from an error
+   * @param error The error
+   * @returns a result
+   */
   Err: <T, E>(error: E) => IResult<T, E>
-  Ok: <T, E>(value: T) => IResult<T, E>
-  defer: <T, E>(r: IResult<T, E> | DeferResult<T, E>) => IAsyncResult<T, E>
+  /**
+   * Builds a result from a value
+   * @param value The value
+   * @returns a result
+   */
+  Ok: <T, E = never>(value: T) => IResult<T, E>
+  /**
+   * Defers a result in a `PromiseLike` async result
+   * @param r The result
+   * @returns an async result
+   */
+  defer: <T, E>(r: IResult<T, E>) => IAsyncResult<T, E>
+  /**
+   * Builds an async result from a promise
+   * @param p The promise
+   * @returns an async result
+   */
   fromPromise: <T>(p: Promise<T>) => IAsyncResult<T, unknown>
+  /**
+   * Builds a function returing a result from
+   * a regular function
+   * @param p The wrapped function
+   * @returns a function returning a result
+   */
   fromFn: <T>(p: () => T) => () => IResult<T, unknown>
+  /**
+   * Builds a function returing an async result from
+   * a promise-valued function
+   * @param p The wrapped function
+   * @returns a function returning an async result
+   */
   fromAsyncFn: <T>(p: () => Promise<T>) => () => IAsyncResult<T, unknown>
+  /**
+   * Builds a result from a function
+   * @param p The function
+   * @returns a result
+   */
   call: <T>(fn: () => T) => IResult<T, unknown>
+  /**
+   * Builds an async result from a function
+   * @param p The function
+   * @returns an async result
+   */
   callAsync: <T>(fn: () => Promise<T>) => IAsyncResult<T, unknown>
 }
 
@@ -162,7 +204,8 @@ const implementAsyncExt = <T, E>(
     andThen<T2, E2 = E>(
       fn: (value: T) => IResult<T2, E2 | E> | DeferResult<T2, E | E>
     ): IAsyncResult<T2, E2 | E> {
-      return ctor.defer(
+      return implementAsyncExt(
+        Result,
         result.then((result) => {
           if (result.isOk()) {
             return fn(result.value)
@@ -173,16 +216,16 @@ const implementAsyncExt = <T, E>(
       )
     },
     inspectOk(fn: (value: T) => void): IAsyncResult<T, E> {
-      return ctor.defer(result.then((inner) => inner.inspectOk(fn)))
+      return implementAsyncExt(Result, result.then((inner) => inner.inspectOk(fn)))
     },
     inspectErr(fn: (error: E) => void): IAsyncResult<T, E> {
-      return ctor.defer(result.then((inner) => inner.inspectErr(fn)))
+      return implementAsyncExt(Result, result.then((inner) => inner.inspectErr(fn)))
     },
     mapErr<E2>(fn: (error: E) => E2): IAsyncResult<T, E2> {
-      return ctor.defer(result.then((inner) => inner.mapErr(fn)))
+      return implementAsyncExt(Result, result.then((inner) => inner.mapErr(fn)))
     },
     mapOk<T2>(fn: (value: T) => T2): IAsyncResult<T2, E> {
-      return ctor.defer(result.then((inner) => inner.mapOk(fn)))
+      return implementAsyncExt(Result, result.then((inner) => inner.mapOk(fn)))
     },
     mapOrElse<T2>(orFn: (error: E) => T2, fn: (value: T) => T2): PromiseLike<T2> {
       return result.then((inner) => inner.mapOrElse(orFn, fn))
@@ -250,8 +293,8 @@ const Ok = <T, E>(value: T): IResult<T, E> => {
  *   if (r.isOk()) console.log(r.error);
  * });
  */
-const defer = <T, E>(r: IResult<T, E> | DeferResult<T, E>): IAsyncResult<T, E> =>
-  implementAsyncExt(Result, 'then' in r ? r : Promise.resolve(r))
+const defer = <T, E>(r: IResult<T, E>): IAsyncResult<T, E> =>
+  implementAsyncExt(Result, Promise.resolve(r))
 
 /**
  * Wraps a promise to return an `IAsyncResult`.
@@ -267,7 +310,7 @@ const defer = <T, E>(r: IResult<T, E> | DeferResult<T, E>): IAsyncResult<T, E> =
  * });
  */
 const fromPromise = <T>(promise: Promise<T>) =>
-  Result.defer(new Promise<IResult<T, unknown>>((resolve) => {
+  implementAsyncExt(Result, new Promise<IResult<T, unknown>>((resolve) => {
     promise
       .then((value) => resolve(Result.Ok(value)))
       .catch((error) => resolve(Result.Err(error as unknown)))
@@ -356,4 +399,14 @@ const Result: IResultCtor = {
   callAsync
 }
 
-export { Result }
+export {
+  Err,
+  Ok,
+  defer,
+  fromPromise,
+  fromFn,
+  fromAsyncFn,
+  call,
+  callAsync,
+  Result
+}
