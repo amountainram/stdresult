@@ -80,8 +80,7 @@ export interface IResultCtor {
    * @param p The function
    * @returns an async result
    */
-  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) =>
-    () => IAsyncResult<T, unknown>
+  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) => IAsyncResult<T, unknown>
 }
 
 const implementExt = <T, E>(
@@ -430,8 +429,7 @@ const flattenAsyncFn = <A extends any[], T, E>(
  */
 const flattenCallAsync = <T, E>(
   fn: () => Promise<IResult<T, E>>
-): () => IAsyncResult<T, unknown> =>
-  () => flatten(fn())
+): IAsyncResult<T, unknown> => flatten(fn())
 
 /**
  * `Result` is a namespace that provides construction
