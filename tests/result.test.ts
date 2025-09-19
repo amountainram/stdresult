@@ -80,6 +80,17 @@ test('Result.andThen', () => {
   }
 })
 
+test('IAsyncResult flatten', async () => {
+  const fn = async () => Result.Ok(42)
+
+  const res = await Result.flatten(fn())
+  if (res.isOk()) {
+    expect(res.value).toBe(42)
+  } else {
+    throw new Error('Expected Ok result')
+  }
+})
+
 test('IAsyncResult andThen', async () => {
   const op = await Result.callAsync(() => fetch('https://google.com'))
     .andThen((res) => Result.fromPromise(res.json()))

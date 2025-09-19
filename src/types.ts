@@ -1,9 +1,33 @@
+/**
+ * Interfaces and types for Result
+ */
+
+/**
+ * Represents an error result
+ */
 export interface Err<E> {
+  /**
+   * The error value
+   */
   error: E
+  /**
+   * Convert to another result type
+   */
+  into<T>(): IResult<T, E>
 }
 
+/**
+ * Represents a successful result
+ */
 export interface Ok<T> {
+  /**
+   * The success value
+   */
   value: T
+  /**
+   * Convert to another result type
+   */
+  into<E>(): IResult<T, E>
 }
 
 export interface ResultImpl<T, E> {

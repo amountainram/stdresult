@@ -162,6 +162,20 @@ const ok = Result.Ok<string, Invalid>('{}')
 const err = Result.Err<number, Invalid>('invalid')
 ```
 
+A convinence `into` method is available when selecting either variant:
+
+```typescript
+const ok = Result.Ok('value').into<string>()
+
+const fn: () => IResult<void, string> = () => {
+  const err = Result.Err<number, string>('error')
+  if (err.isErr()) {
+    return err.into()
+  }
+
+  return Result.Ok(undefined)
+}
+```
 
 Which can be used for parsing:
 
@@ -391,6 +405,28 @@ interface IResultCtor {
    * @returns an async result
    */
   callAsync: <T>(fn: () => Promise<T>) => IAsyncResult<T, unknown>
+  /**
+   * Flattens a promised result into an async result
+   * @param r The result
+   * @returns an async result
+   */
+  flatten: <T, E>(r: Promise<IResult<T, E>>) => IAsyncResult<T, unknown>
+  /**
+   * Wraps a function returning a `Promise<IResult>` and
+   * returns a function returning an `IAsyncResult`.
+   * @param p The function
+   * @returns a function returning an async result
+   */
+  flattenAsyncFn: <A extends any[], T, E>(p: (...args: A) => Promise<IResult<T, E>>) =>
+    (...args: A) => IAsyncResult<T, unknown>
+  /**
+   * Wraps a function returning a `Promise<IResult>` and
+   * returns an `IAsyncResult`.
+   * @param p The function
+   * @returns an async result
+   */
+  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) =>
+    () => IAsyncResult<T, unknown>
 }
 ```
 

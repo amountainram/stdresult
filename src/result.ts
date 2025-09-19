@@ -60,6 +60,28 @@ export interface IResultCtor {
    * @returns an async result
    */
   callAsync: <T>(fn: () => Promise<T>) => IAsyncResult<T, unknown>
+  /**
+   * Flattens a promised result into an async result
+   * @param r The result
+   * @returns an async result
+   */
+  flatten: <T, E>(r: Promise<IResult<T, E>>) => IAsyncResult<T, unknown>
+  /**
+   * Wraps a function returning a `Promise<IResult>` and
+   * returns a function returning an `IAsyncResult`.
+   * @param p The function
+   * @returns a function returning an async result
+   */
+  flattenAsyncFn: <A extends any[], T, E>(p: (...args: A) => Promise<IResult<T, E>>) =>
+    (...args: A) => IAsyncResult<T, unknown>
+  /**
+   * Wraps a function returning a `Promise<IResult>` and
+   * returns an `IAsyncResult`.
+   * @param p The function
+   * @returns an async result
+   */
+  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) =>
+    () => IAsyncResult<T, unknown>
 }
 
 const implementExt = <T, E>(
@@ -251,15 +273,14 @@ const implementAsyncExt = <T, E>(
  * }
  */
 const Err = <T, E>(error: E): IResult<T, E> => {
-  const result: ResultImpl<T, E> = {
+  const result: Err<E> & ResultImpl<T, E> = {
     isErr: (): this is Err<E> => true,
     isOk: (): this is Ok<T> => false,
+    error,
+    into: <T2>() => Result.Err<T2, E>(error)
   }
-  const rImpl = Object.defineProperty(
-    result, 'error', { get: () => error }
-  ) as ResultImpl<T, E> & Err<E>
 
-  return implementExt(Result, rImpl)
+  return implementExt(Result, result)
 }
 
 /**
@@ -273,20 +294,19 @@ const Err = <T, E>(error: E): IResult<T, E> => {
  * }
  */
 const Ok = <T, E>(value: T): IResult<T, E> => {
-  const result = {
+  const result: Ok<T> & ResultImpl<T, E> = {
     isErr: (): this is Err<E> => false,
     isOk: (): this is Ok<T> => true,
+    value,
+    into: <E2>() => Result.Ok<T, E2>(value)
   }
-  const rImpl = Object.defineProperty(
-    result, 'value', { get: () => value }
-  ) as ResultImpl<T, E> & Ok<T>
 
-  return implementExt(Result, rImpl)
+  return implementExt(Result, result)
 }
 
 /**
  * Converts a regular `IResult` or a deferred result
- * like `Promise<IResult>` into a promised `IAsyncResult`.
+ * like `IResult<T, E>` into a promised `IAsyncResult<T, E>`.
  * @param r A Result or a DeferResult (Promise of Result).
  * @returns An IAsyncResult that resolves to the given result.
  * @example
@@ -384,6 +404,36 @@ const callAsync = <T>(fn: () => Promise<T>): IAsyncResult<T, unknown> =>
   fromAsyncFn(fn)()
 
 /**
+ * Converts a promisified `IResult` into an `IAsyncResult<T, unknown>`.
+ * @param r A Promise of an IResult (Promise of Result).
+ * @returns An IAsyncResult that resolves to the given result.
+ */
+const flatten = <T, E>(r: Promise<IResult<T, E>>): IAsyncResult<T, unknown> =>
+  fromPromise(r).andThen((res) => res)
+
+/**
+ * Wraps a function returning a `Promise<IResult>` and
+ * returns a function returning an `IAsyncResult`.
+ * @param fn An async function to wrap.
+ * @returns A function returning an IAsyncResult.
+ */
+const flattenAsyncFn = <A extends any[], T, E>(
+  fn: (...args: A) => Promise<IResult<T, E>>
+): (...args: A) => IAsyncResult<T, unknown> =>
+  (...args: A) => flatten(fn(...args))
+
+/**
+ * Wraps a function returning a `Promise<IResult>` and
+ * returns an `IAsyncResult`.
+ * @param fn An async function to wrap.
+ * @returns An IAsyncResult.
+ */
+const flattenCallAsync = <T, E>(
+  fn: () => Promise<IResult<T, E>>
+): () => IAsyncResult<T, unknown> =>
+  () => flatten(fn())
+
+/**
  * `Result` is a namespace that provides construction
  * functions Ok/Err structures.
  *
@@ -403,7 +453,10 @@ const Result: IResultCtor = {
   fromFn,
   fromAsyncFn,
   call,
-  callAsync
+  callAsync,
+  flatten,
+  flattenAsyncFn,
+  flattenCallAsync
 }
 
 export {
