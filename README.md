@@ -117,7 +117,7 @@ The browser bundle is located at `./dist/index.min.js`.
 
 ```html
 <script type="module">
-  import { Result } from "https://cdn.jsdelivr.net/npm/stdresult@0.2.1/dist/index.min.js"
+  import { Result } from "https://cdn.jsdelivr.net/npm/stdresult@0.2.2/dist/index.min.js"
 
   // your code
 </script>
@@ -425,8 +425,7 @@ interface IResultCtor {
    * @param p The function
    * @returns an async result
    */
-  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) =>
-    () => IAsyncResult<T, unknown>
+  flattenCallAsync: <T, E>(p: () => Promise<IResult<T, E>>) => IAsyncResult<T, unknown>
 }
 ```
 

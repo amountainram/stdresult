@@ -1,6 +1,6 @@
 {
   "name": "@amountainram/stdresult",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "SEE LICENSE IN LICENSE",
   "exports": "./src/index.ts",
   "publish": {
