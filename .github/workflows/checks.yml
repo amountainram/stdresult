@@ -16,10 +16,13 @@ jobs:
       with:
         node-version-file: .nvmrc
         check-latest: true
-        cache: yarn
+    - name: Enable Corepack + pin Yarn
+      run: |
+        corepack enable
+        # Optional but explicit; Corepack will also read package.json:packageManager
+        corepack prepare yarn --activate
+        yarn --version
     - name: Install Dependencies
       run: yarn install --immutable
     - name: Run Check Types
       run: yarn run check:types
-    # - name: Run Linter
-    #   run: yarn run lint
