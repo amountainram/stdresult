@@ -18,11 +18,24 @@ jobs:
       with:
         show-progress: false
     - name: Setup Node.js
-      uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
       with:
         node-version-file: .nvmrc
         check-latest: true
-        cache: yarn
+    - name: Enable Corepack + pin Yarn
+      run: |
+        corepack enable
+        # Optional but explicit; Corepack will also read package.json:packageManager
+        corepack prepare yarn --activate
+        yarn --version
+    - name: Cache Yarn artifacts
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      with:
+        path: |
+          node_modules
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
     - name: Install Dependencies
       run: yarn install --immutable
     - name: Build

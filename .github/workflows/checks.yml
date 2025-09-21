@@ -22,7 +22,17 @@ jobs:
         # Optional but explicit; Corepack will also read package.json:packageManager
         corepack prepare yarn --activate
         yarn --version
+    - name: Cache Yarn artifacts
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      with:
+        path: |
+          node_modules
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
     - name: Install Dependencies
       run: yarn install --immutable
     - name: Run Check Types
       run: yarn run check:types
+    - name: JSR check
+      run: yarn dlx jsr publish --dry-run
