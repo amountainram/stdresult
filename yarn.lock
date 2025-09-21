@@ -700,6 +700,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/semver@npm:^7":
+  version: 7.7.1
+  resolution: "@types/semver@npm:7.7.1"
+  checksum: 10c0/c938aef3bf79a73f0f3f6037c16e2e759ff40c54122ddf0b2583703393d8d3127130823facb880e694caa324eb6845628186aac1997ee8b31dc2d18fafe26268
+  languageName: node
+  linkType: hard
+
 "@vitest/coverage-v8@npm:^3.2.4":
   version: 3.2.4
   resolution: "@vitest/coverage-v8@npm:3.2.4"
@@ -2940,7 +2947,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.3.5, semver@npm:^7.5.3":
+"semver@npm:^7.3.5, semver@npm:^7.5.3, semver@npm:^7.7.2":
   version: 7.7.2
   resolution: "semver@npm:7.7.2"
   bin:
@@ -3195,11 +3202,13 @@ __metadata:
   resolution: "stdresult@workspace:."
   dependencies:
     "@types/node": "npm:^24.5.2"
+    "@types/semver": "npm:^7"
     "@vitest/coverage-v8": "npm:^3.2.4"
     "@vitest/ui": "npm:^3.2.4"
     esbuild: "npm:^0.25.10"
     jsr: "npm:^0.13.5"
     npm-run-all: "npm:^4.1.5"
+    semver: "npm:^7.7.2"
     tsx: "npm:^4.20.5"
     typescript: "npm:^5.9.2"
     vite-tsconfig-paths: "npm:^5.1.4"
