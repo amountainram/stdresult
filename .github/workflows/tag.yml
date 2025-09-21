@@ -12,6 +12,9 @@ jobs:
   release-package:
     name: Release Package on NPM
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
     - name: Checkout Repository
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -42,3 +45,5 @@ jobs:
       run: yarn build
     - name: Publish to NPM
       run: yarn npm publish
+    - name: Publish to JSR
+      run: yarn dlx jsr publish
