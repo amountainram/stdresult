@@ -10,7 +10,7 @@ on:
 
 jobs:
   release-package:
-    name: Release Package on NPM
+    name: Release Package
     runs-on: ubuntu-latest
     permissions:
       contents: read
